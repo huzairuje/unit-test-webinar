@@ -1,9 +1,9 @@
 package handler
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 )
 
@@ -20,10 +20,21 @@ func TestHelloHandler_WithName(t *testing.T) {
 		t.Errorf("expected status %d; got %d", http.StatusOK, rr.Code)
 	}
 
-	// Check that the response contains "Hello World".
+	// Check the Content-Type header.
+	if contentType := rr.Header().Get("Content-Type"); contentType != "application/json" {
+		t.Errorf("expected Content-Type 'application/json', got %q", contentType)
+	}
+
+	// Decode the JSON response.
+	var resp map[string]string
+	if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("could not unmarshal JSON response: %v", err)
+	}
+
+	// Check that the "message" field equals "Hello World".
 	expected := "Hello World"
-	if strings.TrimSpace(rr.Body.String()) != expected {
-		t.Errorf("expected body %q, got %q", expected, rr.Body.String())
+	if msg, ok := resp["message"]; !ok || msg != expected {
+		t.Errorf("expected message %q, got %q", expected, msg)
 	}
 }
 
@@ -40,9 +51,20 @@ func TestHelloHandler_WithoutName(t *testing.T) {
 		t.Errorf("expected status %d; got %d", http.StatusOK, rr.Code)
 	}
 
-	// When no name is provided, the output should be "Hello " (with a trailing space).
-	expected := "Hello "
-	if strings.TrimSpace(rr.Body.String()) != strings.TrimSpace(expected) {
-		t.Errorf("expected body %q, got %q", expected, rr.Body.String())
+	// Check the Content-Type header.
+	if contentType := rr.Header().Get("Content-Type"); contentType != "application/json" {
+		t.Errorf("expected Content-Type 'application/json', got %q", contentType)
+	}
+
+	// Decode the JSON response.
+	var resp map[string]string
+	if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("could not unmarshal JSON response: %v", err)
+	}
+
+	// When no name is provided, the handler defaults to "World".
+	expected := "Hello World"
+	if msg, ok := resp["message"]; !ok || msg != expected {
+		t.Errorf("expected message %q, got %q", expected, msg)
 	}
 }
